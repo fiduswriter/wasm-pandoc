@@ -1,5 +1,7 @@
 # `pandoc-wasm`
 
+*Fork for private experimentation.*
+
 [![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/#haskell-wasm:matrix.terrorjack.com)
 
 The latest version of `pandoc` CLI compiled as a standalone
