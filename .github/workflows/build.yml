@@ -1,19 +1,13 @@
-name: build
-
-on: [push, pull_request]
-
-permissions:
-  contents: write
+name: Build, deploy and release
 
 jobs:
   build:
-    name: build
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
+      contents: write
     steps:
-
       - name: setup-alex-happy
         run: |
           pushd "$(mktemp -d)"
@@ -101,7 +95,7 @@ jobs:
           path: pandoc-wasm-${{ env.VERSION }}.zip
 
       - name: Upload to release
-        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+        if: ${{ github.event_name == 'release' }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
