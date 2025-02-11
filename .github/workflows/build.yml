@@ -89,21 +89,21 @@ jobs:
 
       - name: Zip dist folder
         run: |
-          zip -r pandoc-wasm-$VERSION.zip dist/
+          zip -r pandoc-wasm-${{ VERSION }}.zip dist/
 
       - name: Upload zipped file as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pandoc-wasm-$VERSION.zip
-          path: pandoc-wasm-$VERSION.zip
+          name: pandoc-wasm-${{ VERSION }}.zip
+          path: pandoc-wasm-${{ VERSION }}.zip
 
       - name: Upload to release
         if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: pandoc-wasm-$VERSION.zip
-          asset_name: pandoc-wasm-$VERSION.zip
+          file: pandoc-wasm-${{ VERSION }}.zip
+          asset_name: pandoc-wasm-${{ VERSION }}.zip
           tag: ${{ github.ref }}
           overwrite: true
 
