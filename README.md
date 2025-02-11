@@ -1,19 +1,21 @@
 # `pandoc-wasm`
 
+*Fork for private experimentation.*
+
 [![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/#haskell-wasm:matrix.terrorjack.com)
 
 The latest version of `pandoc` CLI compiled as a standalone
 `wasm32-wasi` module that can be run by engines like `wasmtime` as
 well as browsers.
 
-## [Live demo](https://tweag.github.io/pandoc-wasm)
+## [Live demo](https://johanneswilm.github.io/pandoc-wasm)
 
 Stdin on the left, stdout on the right, command line arguments at the
 bottom. No convert button, output is produced dynamically as input
 changes.
 
 You're also more than welcome to fetch the
-[`pandoc.wasm`](https://tweag.github.io/pandoc-wasm/pandoc.wasm)
+[`pandoc.wasm`](https://johanneswilm.github.io/pandoc-wasm/pandoc.wasm)
 module and make your own customized app. `pandoc.wasm` is fully
 `wasm32-wasi` compliant and doesn't make use of any JSFFI feature in
 the ghc wasm backend.
