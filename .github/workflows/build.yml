@@ -35,11 +35,21 @@ jobs:
       - name: Checkout Pandoc-wasm
         uses: actions/checkout@v4
 
+      - name: Extract versions from version.txt
+        id: extract-version
+        run: |
+          VERSION=$(cat version.txt)
+          echo "Extracted version: $VERSION"
+          PANDOC_VERSION=$(echo $VERSION | cut -d '+' -f 2)
+          echo "Extracted Pandoc version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "PANDOC_VERSION=$PANDOC_VERSION" >> $GITHUB_ENV
+
       - name: Checkout Pandoc
         uses: actions/checkout@v4
         with:
           repository: jgm/pandoc
-          ref: main
+          ref: ${{ env.PANDOC_VERSION }}
           path: pandoc
 
       - name: Patch Pandoc sources
@@ -47,13 +57,6 @@ jobs:
           cd pandoc
           patch -p1 < ../patch/pandoc.patch
           cd ..
-
-      - name: Extract version from pandoc.cabal
-        id: extract-version
-        run: |
-          VERSION=$(grep '^version:' pandoc/pandoc.cabal | awk '{print $2}')
-          echo "Extracted version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: gen-plan-json
         run: |
