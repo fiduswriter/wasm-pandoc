@@ -39,7 +39,7 @@ jobs:
       - name: Extract versions from version.txt
         id: extract-version
         run: |
-          VERSION=$(cat version.txt)
+          VERSION=$(jq -r .version package.json)
           echo "Extracted version: $VERSION"
           PANDOC_VERSION=$(echo $VERSION | cut -d '+' -f 2)
           echo "Extracted Pandoc version: $VERSION"
@@ -84,7 +84,7 @@ jobs:
         run: |
           mkdir dist
           wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz $(find pandoc -type f -name pandoc.wasm) -o dist/pandoc.wasm
-          cp frontend/*.html frontend/*.js dist
+          cp src/*.js dist
 
       - name: test
         run: |
@@ -93,13 +93,26 @@ jobs:
 
       - name: Zip dist folder
         run: |
-          zip -r pandoc-wasm-${{ env.VERSION }}.zip dist/
+          zip -r pandoc-wasm-${{ env.VERSION }}.zip dist/*
 
       - name: Upload zipped file as artifact
         uses: actions/upload-artifact@v4
         with:
           name: pandoc-wasm-${{ env.VERSION }}.zip
           path: pandoc-wasm-${{ env.VERSION }}.zip
+
+      - name: Prepare pages
+        run: |
+          cp dist/pandoc.wasm demo/
+
+      - name: Upload pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo
+          retention-days: 90
+
+      - name: deploy-pages
+        uses: actions/deploy-pages@v4
 
       - name: Upload to release
         if: ${{ github.event_name == 'release' }}
@@ -111,11 +124,15 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: upload-pages-artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: "Install node"
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/setup-node@v3
         with:
-          path: dist
-          retention-days: 90
+          node-version: "22"
 
-      - name: deploy-pages
-        uses: actions/deploy-pages@v4
+      - name: Distribute via NPM // (github packages while in PR)
+        if: ${{ github.event_name == 'release' }}
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          registry: "https://npm.pkg.github.com"

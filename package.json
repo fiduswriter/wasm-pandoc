@@ -1,0 +1,22 @@
+{
+  "name": "pandoc-wasm",
+  "version": "0.2+3.6.3",
+  "description": "Pandom transpiled as WASM to be used in browsers and node.js.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com:johanneswilm/pandoc-wasm.git"
+  },
+  "keywords": [
+    "pandoc",
+    "wasm"
+  ],
+  "author": "Terrorjack",
+  "license": "MIT",
+  "dependencies": [
+    "browser_wasi_shim": "^0.4.0"
+  ]
+}

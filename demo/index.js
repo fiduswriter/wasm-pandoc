@@ -4,7 +4,7 @@ import {
   File,
   ConsoleStdout,
   PreopenDirectory,
-} from "https://cdn.jsdelivr.net/npm/@bjorn3/browser_wasi_shim@0.3.0/dist/index.js";
+} from "https://cdn.jsdelivr.net/npm/@bjorn3/browser_wasi_shim@0.4.0/dist/index.js";
 
 const args = ["pandoc.wasm", "+RTS", "-H64m", "-RTS"];
 const env = [];
