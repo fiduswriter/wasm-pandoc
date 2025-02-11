@@ -35,15 +35,21 @@ jobs:
           ~/.ghc-wasm/add_to_github_path.sh
           popd
 
-      - name: checkout
+      - name: Checkout Pandoc-wasm
         uses: actions/checkout@v4
 
-      - name: checkout
+      - name: Checkout Pandoc
         uses: actions/checkout@v4
         with:
-          repository: johanneswilm/pandoc
+          repository: jgm/pandoc
           ref: main
           path: pandoc
+
+      - name: Patch Pandoc sources
+        run: |
+          cd pandoc
+          patch -p1 < ../patch/pandoc.patch
+          cd ..
 
       - name: gen-plan-json
         run: |
@@ -76,6 +82,15 @@ jobs:
         run: |
           wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
           head --lines=20 pandoc/README.rst
+
+      - name: Upload to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/pandoc.wasm
+          asset_name: pandoc.wasm
+          tag: ${{ github.ref }}
+          overwrite: true
 
       - name: upload-pages-artifact
         uses: actions/upload-pages-artifact@v3
