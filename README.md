@@ -29,7 +29,7 @@ need at least 9.10 since it's the earliest major version with (my
 non-official) backports for ghc wasm backend's Template Haskell & ghci
 support.
 
-It's built using my
+It's build-method is based on this
 [fork](https://github.com/haskell-wasm/pandoc/tree/wasm) which is
 based on latest `pandoc` release and patches dependencies, cabal
 config as well as some module code to make things compilable to wasm:
