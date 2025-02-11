@@ -41,7 +41,7 @@ jobs:
         run: |
           VERSION=$(jq -r .version package.json)
           echo "Extracted version: $VERSION"
-          PANDOC_VERSION=$(echo $VERSION | cut -d '+' -f 2)
+          PANDOC_VERSION=$(cat pandoc-version.txt)
           echo "Extracted Pandoc version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "PANDOC_VERSION=$PANDOC_VERSION" >> $GITHUB_ENV
