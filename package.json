@@ -16,7 +16,7 @@
   ],
   "author": "Terrorjack",
   "license": "MIT",
-  "dependencies": [
+  "dependencies": {
     "browser_wasi_shim": "^0.4.0"
-  ]
+  }
 }
