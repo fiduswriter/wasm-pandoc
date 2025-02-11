@@ -1,8 +1,8 @@
 {
   "name": "pandoc-wasm",
   "version": "0.4.0",
-  "description": "Pandom transpiled as WASM to be used in browsers and node.js.",
-  "main": "dist/index.js",
+  "description": "Pandoc transpiled as WASM to be used in browsers.",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -133,9 +133,14 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Distribute via NPM // (github packages while in PR)
+      - name: Add package.json
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          cp package.json dist/
+
+      - name: Distribute via NPM
         if: ${{ github.event_name == 'release' }}
         uses: JS-DevTools/npm-publish@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          registry: "https://npm.pkg.github.com"
+          package: "dist"
+          token: ${{ secrets.NPM_TOKEN }}
