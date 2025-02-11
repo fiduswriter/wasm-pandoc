@@ -91,16 +91,6 @@ jobs:
           wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
           head --lines=20 pandoc/README.rst
 
-      - name: Zip dist folder
-        run: |
-          zip -r pandoc-wasm-${{ env.VERSION }}.zip dist/*
-
-      - name: Upload zipped file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pandoc-wasm-${{ env.VERSION }}.zip
-          path: pandoc-wasm-${{ env.VERSION }}.zip
-
       - name: Prepare pages
         run: |
           cp dist/pandoc.wasm demo/
@@ -113,6 +103,19 @@ jobs:
 
       - name: deploy-pages
         uses: actions/deploy-pages@v4
+
+      - name: Upload as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pandoc-wasm-${{ env.VERSION }}
+          path: dist
+
+      - name: Zip dist folder
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          cd  dist
+          zip -r ../pandoc-wasm-${{ env.VERSION }}.zip .
+          cd ..
 
       - name: Upload to release
         if: ${{ github.event_name == 'release' }}
