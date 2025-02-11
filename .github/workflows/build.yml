@@ -1,12 +1,9 @@
 name: build
 
-on:
-  merge_group:
-  pull_request:
-  push:
-    branches:
-      - master
-  workflow_dispatch:
+on: [push, pull_request]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -51,6 +48,13 @@ jobs:
           patch -p1 < ../patch/pandoc.patch
           cd ..
 
+      - name: Extract version from pandoc.cabal
+        id: extract-version
+        run: |
+          VERSION=$(grep '^version:' pandoc/pandoc.cabal | awk '{print $2}')
+          echo "Extracted version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: gen-plan-json
         run: |
           pushd pandoc
@@ -83,12 +87,23 @@ jobs:
           wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
           head --lines=20 pandoc/README.rst
 
+      - name: Zip dist folder
+        run: |
+          zip -r pandoc-wasm-$VERSION.zip dist/
+
+      - name: Upload zipped file as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: pandoc-wasm-v$VERSION.zip
+          path: pandoc-wasm-v$VERSION.zip
+
       - name: Upload to release
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/pandoc.wasm
-          asset_name: pandoc.wasm
+          file: pandoc-wasm-$VERSION.zip
+          asset_name: pandoc-wasm-$VERSION.zip
           tag: ${{ github.ref }}
           overwrite: true
 
