@@ -92,7 +92,7 @@ jobs:
           zip -r pandoc-wasm-$VERSION.zip dist/
 
       - name: Upload zipped file as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pandoc-wasm-v$VERSION.zip
           path: pandoc-wasm-v$VERSION.zip
