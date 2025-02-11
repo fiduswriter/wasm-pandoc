@@ -1,4 +1,8 @@
-on: [push, pull_request, published]
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
 
 name: Build, deploy and release
 
@@ -98,7 +102,7 @@ jobs:
           path: pandoc-wasm-${{ env.VERSION }}.zip
 
       - name: Upload to release
-        if: ${{ github.event_name == 'published' }}
+        if: ${{ github.event_name == 'release' }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
