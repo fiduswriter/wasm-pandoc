@@ -20,7 +20,7 @@ const outFile = new File(new Uint8Array(), {
 
 
 async function toUint8Array(inData) {
-    let uint8Array
+    let uint8Array;
 
     if (typeof inData === 'string') {
         // If inData is a text string, convert it to a Uint8Array
@@ -37,7 +37,38 @@ async function toUint8Array(inData) {
     return uint8Array
 }
 
+const textDecoder = new TextDecoder("utf-8", {
+    fatal: true
+})
 
+function convertData(data) {
+    let outData
+    try {
+        // Attempt to decode the data as UTF-8 text
+        // Return as string if successful
+        outData = textDecoder.decode(data)
+    } catch (e) {
+        // If decoding fails, assume it's binary data and return as Blob
+        outData = new Blob([data])
+    }
+    return outData
+}
+
+function convertItem(name, value) {
+    if (value.contents) {
+        // directory
+        return [
+            name,
+            new Map([...value.contents].map(([name, value]) => convertItem(name, value)))
+          ]
+    } else if (value.data) {
+        // file
+        return [
+            name,
+            convertData(value.data)
+        ]
+    }
+}
 
 export async function pandoc(args_str, inData, resources = []) {
 
@@ -53,13 +84,15 @@ export async function pandoc(args_str, inData, resources = []) {
         })])
     }
 
+    const rootDir = new PreopenDirectory("/", files)
+
     const fds = [
         new OpenFile(new File(new Uint8Array(), {
             readonly: true
         })),
         ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)),
         ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)),
-        new PreopenDirectory("/", files),
+        rootDir,
     ]
     const options = {
         debug: false
@@ -108,18 +141,14 @@ export async function pandoc(args_str, inData, resources = []) {
     inFile.data = await toUint8Array(inData)
 
     instance.exports.wasm_main(args_ptr, args_str.length)
-    let outData
-    try {
-        // Attempt to decode the data as UTF-8 text
-        const textDecoder = new TextDecoder("utf-8", {
-            fatal: true
-        })
-        // Return as string if successful
-        outData = textDecoder.decode(outFile.data)
-    } catch (e) {
-        // If decoding fails, assume it's binary data and return as Blob
-        outData = new Blob([outFile.data])
-    }
 
-    return outData
+    // Find any generated media files
+
+    const knownFileNames = ["in", "out"].concat(resources.map(resource => resource.filename))
+    const mediaFiles = new Map([...rootDir.dir.contents].filter(([name, _value]) => !knownFileNames.includes(name)).map(([name, value]) => convertItem(name, value)))
+
+    return {
+        out: convertData(outFile.data),
+        mediaFiles
+    }
 }

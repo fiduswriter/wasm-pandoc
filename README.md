@@ -59,12 +59,17 @@ const output = await pandoc(
         ...
     ]
 )
+
+console.log(output)
+
+{
+  out: '...',
+  mediaFiles: Map {'media': Map {'image1.jpg' => Blob, 'image2.png' => Blob, ...}}
+}
+
 ```
 
-The output will either be a string (for text formats) or a blob for binary formats.
-
-
-**TODO:** Obtain extracted media files. I know too little about wasm to figure out how to get them out.
+`out` will either be a string (for text formats) or a blob for binary formats of the main output. `mediaFiles` will be a map of all additional dirs/files that pandoc has created during the process.
 
 ## Acknowledgements
 
