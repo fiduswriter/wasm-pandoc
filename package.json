@@ -1,6 +1,6 @@
 {
   "name": "pandoc-wasm",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Pandoc transpiled as WASM to be used in browsers.",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,6 @@
   "author": "Johannes Wilm",
   "license": "MIT",
   "dependencies": {
-    "browser_wasi_shim": "^0.4.0"
+    "@bjorn3/browser_wasi_shim": "^0.4.0"
   }
 }
