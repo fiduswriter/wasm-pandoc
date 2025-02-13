@@ -138,9 +138,18 @@ jobs:
         run: |
           cp package.json dist/
 
-      - name: Distribute via NPM
+      - name: Deploy
         if: ${{ github.event_name == 'release' }}
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          package: "dist"
-          token: ${{ secrets.NPM_TOKEN }}
+        uses: s0/git-publish-subdir-action@develop
+        env:
+          REPO: self
+          BRANCH: releases
+          FOLDER: dist
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Distribute via NPM
+      #   if: ${{ github.event_name == 'release' }}
+      #   uses: JS-DevTools/npm-publish@v3
+      #   with:
+      #     package: "dist"
+      #     token: ${{ secrets.NPM_TOKEN }}
