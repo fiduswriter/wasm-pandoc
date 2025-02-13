@@ -55,9 +55,9 @@ jobs:
 
       - name: Patch Pandoc sources
         run: |
-          cd pandoc
+          pushd pandoc
           patch -p1 < ../patch/pandoc.patch
-          cd ..
+          popd
 
       - name: gen-plan-json
         run: |
@@ -113,9 +113,9 @@ jobs:
       - name: Zip dist folder
         if: ${{ github.event_name == 'release' }}
         run: |
-          cd  dist
+          pushd dist
           zip -r ../pandoc-wasm-${{ env.VERSION }}.zip .
-          cd ..
+          popd
 
       - name: Upload to release
         if: ${{ github.event_name == 'release' }}
