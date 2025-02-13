@@ -1,6 +1,6 @@
 # `pandoc-wasm`
 
-** In search of maintainer:** I have temporarily taken over maintainership of this package due to there being no package on NPM. However, I know very little about wasm and haskell and would like for someone else to take this package again. (@Terrorjack ?)
+**In search of maintainer:** I have temporarily taken over maintainership of this package due to there being no package on NPM. However, I know very little about wasm and haskell and would like for someone else to take this package again. (@Terrorjack ?)
 
 
 The latest version of `pandoc` CLI compiled as a standalone
