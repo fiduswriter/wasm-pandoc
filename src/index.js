@@ -20,7 +20,7 @@ const outFile = new File(new Uint8Array(), {
 
 
 async function toUint8Array(inData) {
-    let uint8Array;
+    let uint8Array
 
     if (typeof inData === 'string') {
         // If inData is a text string, convert it to a Uint8Array
