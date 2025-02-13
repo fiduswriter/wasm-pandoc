@@ -69,7 +69,9 @@ console.log(output)
 
 ```
 
-`out` will either be a string (for text formats) or a blob for binary formats of the main output. `mediaFiles` will be a map of all additional dirs/files that pandoc has created during the process.
+`out` will either be a string (for text formats) or a Blob for binary formats of the main output. `mediaFiles` will be a map of all additional dirs/files that pandoc has created during the process.
+
+
 
 ## Acknowledgements
 
