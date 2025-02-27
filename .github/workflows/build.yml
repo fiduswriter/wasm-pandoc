@@ -187,6 +187,7 @@ jobs:
 
   deploy-pages:
     needs: [prepare, post-process]
+    if: always() # Run even if build-wasm is skipped
     runs-on: ubuntu-latest
     permissions:
       pages: write
