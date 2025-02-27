@@ -1,5 +1,5 @@
 {
-  "name": "pandoc-wasm",
+  "name": "wasm-pandoc",
   "version": "0.6.1",
   "description": "Pandoc transpiled as WASM to be used in browsers.",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com:johanneswilm/pandoc-wasm.git"
+    "url": "github.com:fiduswriter/wasm-pandoc.git"
   },
   "keywords": [
     "pandoc",

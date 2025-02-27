@@ -33,7 +33,7 @@ jobs:
           ~/.ghc-wasm/add_to_github_path.sh
           popd
 
-      - name: Checkout Pandoc-wasm
+      - name: Checkout wasm-pandoc
         uses: actions/checkout@v4
 
       - name: Extract versions from version.txt
@@ -107,14 +107,14 @@ jobs:
       - name: Upload as build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pandoc-wasm-${{ env.VERSION }}
+          name: wasm-pandoc-${{ env.VERSION }}
           path: dist
 
       - name: Zip dist folder
         if: ${{ github.event_name == 'release' }}
         run: |
           pushd dist
-          zip -r ../pandoc-wasm-${{ env.VERSION }}.zip .
+          zip -r ../wasm-pandoc-${{ env.VERSION }}.zip .
           popd
 
       - name: Upload to release
@@ -122,8 +122,8 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: pandoc-wasm-${{ env.VERSION }}.zip
-          asset_name: pandoc-wasm-${{ env.VERSION }}.zip
+          file: wasm-pandoc-${{ env.VERSION }}.zip
+          asset_name: wasm-pandoc-${{ env.VERSION }}.zip
           tag: ${{ github.ref }}
           overwrite: true
 
@@ -147,9 +147,9 @@ jobs:
           FOLDER: dist
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Distribute via NPM
-      #   if: ${{ github.event_name == 'release' }}
-      #   uses: JS-DevTools/npm-publish@v3
-      #   with:
-      #     package: "dist"
-      #     token: ${{ secrets.NPM_TOKEN }}
+      - name: Distribute via NPM
+        if: ${{ github.event_name == 'release' }}
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          package: "dist"
+          token: ${{ secrets.NPM_TOKEN }}

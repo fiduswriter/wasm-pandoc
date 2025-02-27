@@ -1,13 +1,12 @@
-# `pandoc-wasm`
+# `wasm-pandoc`
 
-**In search of maintainer:** I have temporarily taken over maintainership of this package due to there being no package on NPM. However, I know very little about wasm and haskell and would like for someone else to take this package again. (@Terrorjack ?)
+**Looking for maintainer:** Johannes Wilm has temporarily taken over maintainership of this package due to there being no package on NPM.
+However, he knows very little about wasm and haskell and would like for someone else to take this package again.
 
 
-The latest version of `pandoc` CLI compiled as a standalone
-`wasm32-wasi` module that can be run by engines like `wasmtime` as
-well as browsers.
+The latest version of `pandoc` CLI compiled as a standalone `wasm32-wasi` module that can be run by browsers.
 
-## [Live demo](https://johanneswilm.github.io/pandoc-wasm)
+## [Live demo](https://fiduswriter.github.io/wasm-pandoc)
 
 Stdin on the left, stdout on the right, command line arguments at the
 bottom. No convert button, output is produced dynamically as input
@@ -16,7 +15,7 @@ changes.
 
 ## To use
 
-1. Make `pandoc-wasm` a dependency in your project.json.
+1. Make `wasm-pandoc` a dependency in your project.json.
 
 2. In your bundler mark "wasm" as an asset/resource. For example in rspack, in your config file:
 
@@ -39,10 +38,10 @@ module.exports = {
 }
 ```
 
-3. Import `pandoc` from `pandoc-wasm` like this:
+3. Import `pandoc` from `wasm-pandoc` like this:
 
 ```js
-import { pandoc } from "pandoc-wasm"
+import { pandoc } from "wasm-pandoc"
 ```
 
 4. Execute it like this (it's async):
@@ -85,4 +84,4 @@ Thanks to all efforts to make `pandoc` run with wasm, including but not limited 
 - Cheng Shao [`pandoc-wasm`](https://github.com/tweag/pandoc-wasm)
 - George Stagg's [`pandoc-wasm`](https://github.com/georgestagg/pandoc-wasm)
 - Yuto Takahashi's [`wasm-pandoc`](https://github.com/y-taka-23/wasm-pandoc)
-- My legacy asterius pandoc [demo](https://asterius.netlify.app/demo/pandoc/pandoc.html)
+- TerrorJack's asterius pandoc [demo](https://asterius.netlify.app/demo/pandoc/pandoc.html)
