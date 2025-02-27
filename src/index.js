@@ -1,10 +1,10 @@
 import {
-    WASI,
-    OpenFile,
-    File,
     ConsoleStdout,
+    File,
+    OpenFile,
     PreopenDirectory,
-} from "@bjorn3/browser_wasi_shim";
+    WASI
+} from "@bjorn3/browser_wasi_shim"
 import pandocWasmLocation from "./pandoc.wasm"
 
 const pandocWasmFetch = await fetch(pandocWasmLocation)
@@ -18,11 +18,10 @@ const outFile = new File(new Uint8Array(), {
     readonly: false
 })
 
-
 async function toUint8Array(inData) {
-    let uint8Array;
+    let uint8Array
 
-    if (typeof inData === 'string') {
+    if (typeof inData === "string") {
         // If inData is a text string, convert it to a Uint8Array
         const encoder = new TextEncoder()
         uint8Array = encoder.encode(inData)
@@ -31,7 +30,7 @@ async function toUint8Array(inData) {
         const arrayBuffer = await inData.arrayBuffer()
         uint8Array = new Uint8Array(arrayBuffer)
     } else {
-        throw new Error('Unsupported type: inData must be a string or a Blob')
+        throw new Error("Unsupported type: inData must be a string or a Blob")
     }
 
     return uint8Array
@@ -47,7 +46,7 @@ function convertData(data) {
         // Attempt to decode the data as UTF-8 text
         // Return as string if successful
         outData = textDecoder.decode(data)
-    } catch (e) {
+    } catch (_e) {
         // If decoding fails, assume it's binary data and return as Blob
         outData = new Blob([data])
     }
@@ -59,53 +58,54 @@ function convertItem(name, value) {
         // directory
         return [
             name,
-            new Map([...value.contents].map(([name, value]) => convertItem(name, value)))
-          ]
+            new Map(
+                [...value.contents].map(([name, value]) =>
+                    convertItem(name, value)
+                )
+            )
+        ]
     } else if (value.data) {
         // file
-        return [
-            name,
-            convertData(value.data)
-        ]
+        return [name, convertData(value.data)]
     }
 }
 
 export async function pandoc(args_str, inData, resources = []) {
-
     const files = [
         ["in", inFile],
-        ["out", outFile],
+        ["out", outFile]
     ]
 
-    for await(const resource of resources) {
+    for await (const resource of resources) {
         const contents = await toUint8Array(resource.contents)
-        files.push([resource.filename, new File(contents, {
-            readonly: true
-        })])
+        files.push([
+            resource.filename,
+            new File(contents, {
+                readonly: true
+            })
+        ])
     }
 
     const rootDir = new PreopenDirectory("/", files)
 
     const fds = [
-        new OpenFile(new File(new Uint8Array(), {
-            readonly: true
-        })),
-        ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)),
-        ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)),
-        rootDir,
+        new OpenFile(
+            new File(new Uint8Array(), {
+                readonly: true
+            })
+        ),
+        ConsoleStdout.lineBuffered(msg => console.log(`[WASI stdout] ${msg}`)),
+        ConsoleStdout.lineBuffered(msg => console.warn(`[WASI stderr] ${msg}`)),
+        rootDir
     ]
     const options = {
         debug: false
     }
     const wasi = new WASI(args, env, fds, options)
 
-    const {
-        instance
-    } = await WebAssembly.instantiate(
-        pandocWasm, {
-            wasi_snapshot_preview1: wasi.wasiImport,
-        }
-    )
+    const {instance} = await WebAssembly.instantiate(pandocWasm, {
+        wasi_snapshot_preview1: wasi.wasiImport
+    })
 
     wasi.initialize(instance)
     instance.exports.__wasm_call_ctors()
@@ -135,7 +135,11 @@ export async function pandoc(args_str, inData, resources = []) {
     const args_ptr = instance.exports.malloc(args_str.length)
     new TextEncoder().encodeInto(
         args_str,
-        new Uint8Array(instance.exports.memory.buffer, args_ptr, args_str.length)
+        new Uint8Array(
+            instance.exports.memory.buffer,
+            args_ptr,
+            args_str.length
+        )
     )
 
     inFile.data = await toUint8Array(inData)
@@ -144,8 +148,14 @@ export async function pandoc(args_str, inData, resources = []) {
 
     // Find any generated media files
 
-    const knownFileNames = ["in", "out"].concat(resources.map(resource => resource.filename))
-    const mediaFiles = new Map([...rootDir.dir.contents].filter(([name, _value]) => !knownFileNames.includes(name)).map(([name, value]) => convertItem(name, value)))
+    const knownFileNames = ["in", "out"].concat(
+        resources.map(resource => resource.filename)
+    )
+    const mediaFiles = new Map(
+        [...rootDir.dir.contents]
+            .filter(([name, _value]) => !knownFileNames.includes(name))
+            .map(([name, value]) => convertItem(name, value))
+    )
 
     return {
         out: convertData(outFile.data),

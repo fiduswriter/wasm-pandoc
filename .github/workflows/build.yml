@@ -5,13 +5,26 @@ on:
   pull_request:
 
 jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+
+      - name: Run pre-commit
+        run: |
+          pre-commit run --all-files
   prepare:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract-version.outputs.version }}
       pandoc_version: ${{ steps.extract-version.outputs.pandoc_version }}
-      wasm_cache_hit: ${{ steps.cache-wasm.outputs.cache-hit }}
       wasm_cache_key: ${{ steps.extract-version.outputs.wasm_cache_key }}
+      wasm_cache_hit: ${{ steps.cache-wasm.outputs.cache-hit }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,11 +32,11 @@ jobs:
       - name: Extract versions
         id: extract-version
         run: |
-          VERSION=$(jq -r .version package.json)
-          PANDOC_VERSION=$(cat pandoc-version.txt)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "pandoc_version=$PANDOC_VERSION" >> $GITHUB_OUTPUT
-          echo "wasm_cache_key=wasm-${{ steps.extract-version.outputs.pandoc_version }}-${{ hashFiles('patch/pandoc.patch') }}" >> $GITHUB_OUTPUT
+          env.VERSION=$(jq -r .version package.json)
+          env.PANDOC_VERSION=$(cat pandoc-version.txt)
+          echo "version=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+          echo "pandoc_version=${{ env.PANDOC_VERSION }}" >> $GITHUB_OUTPUT
+          echo "wasm_cache_key=wasm-${{ env.PANDOC_VERSION }}-${{ hashFiles('patch/pandoc.patch') }}" >> $GITHUB_OUTPUT
 
       # Check if we already have the optimized WASM in cache
       - name: Check WASM cache
@@ -31,7 +44,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: dist
-          key: wasm-bundle-${{ steps.extract-version.outputs.pandoc_version }}-${{ hashFiles('patch/pandoc.patch') }}
+          key: ${{ steps.extract-version.outputs.wasm_cache_key }}
 
   build-wasm:
     needs: prepare
@@ -49,9 +62,9 @@ jobs:
           path: |
             ~/.cabal
             ~/.ghc-wasm
-          key: haskell-tools-${{ runner.os }}-${{ needs.prepare.outputs.pandoc_version }}
+          key: haskell-tools-${{ needs.prepare.outputs.pandoc_version }}
           restore-keys: |
-            haskell-tools-${{ runner.os }}-
+            haskell-tools-
 
       - name: Setup build tools
         if: steps.cache-tools.outputs.cache-hit != 'true'
@@ -105,10 +118,10 @@ jobs:
           path: |
             ~/.ghc-wasm/.cabal/store
             pandoc/dist-newstyle
-          key: wasm-cabal-${{ runner.os }}-${{ needs.prepare.outputs.pandoc_version }}-${{ hashFiles('pandoc/dist-newstyle/cache/plan.json') }}
+          key: wasm-cabal-cache-${{ needs.prepare.outputs.pandoc_version }}-${{ hashFiles('pandoc/dist-newstyle/cache/plan.json') }}
           restore-keys: |
-            wasm-cabal-${{ runner.os }}-${{ needs.prepare.outputs.pandoc_version }}-
-            wasm-cabal-${{ runner.os }}-
+            wasm-cabal-cache-${{ needs.prepare.outputs.pandoc_version }}-
+            wasm-cabal-cache-
 
       - name: Build Pandoc WASM
         run: |
@@ -128,8 +141,11 @@ jobs:
           wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
           head -20 pandoc/README.rst
 
-      # Save to cache - this should happen automatically since we're using
-      # the same key as in the prepare job
+      - name: Save to cache
+        uses: actions/cache/save@v4
+        with:
+          path: dist/pandoc.wasm
+          key: ${{ needs.prepare.outputs.wasm_cache_key }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -234,7 +250,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
