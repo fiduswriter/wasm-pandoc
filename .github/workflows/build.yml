@@ -1,48 +1,47 @@
+name: Build, deploy, and release
+
 on:
   push:
   pull_request:
   release:
     types: [published]
 
-name: Build, deploy and release
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-      contents: write
+      contents: read
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      pandoc_version: ${{ steps.extract-version.outputs.pandoc_version }}
     steps:
-      - name: setup-alex-happy
+      - name: Setup build tools
         run: |
-          pushd "$(mktemp -d)"
-          cabal path --installdir >> "$GITHUB_PATH"
+          temp_dir=$(mktemp -d)
+          pushd "$temp_dir"
           cabal update
-          cabal install \
-            alex \
-            happy
+          cabal install alex happy
           popd
 
-      - name: setup-ghc-wasm
+      - name: Setup GHC-WASM
         run: |
-          pushd "$(mktemp -d)"
+          temp_dir=$(mktemp -d)
+          pushd "$temp_dir"
           curl -f -L --retry 5 https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/archive/master/ghc-wasm-meta-master.tar.gz | tar xz --strip-components=1
           FLAVOUR=9.12 ./setup.sh
           ~/.ghc-wasm/add_to_github_path.sh
           popd
 
-      - name: Checkout wasm-pandoc
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract versions from version.txt
+      - name: Get Pandoc version
         id: extract-version
         run: |
           VERSION=$(jq -r .version package.json)
-          echo "Extracted version: $VERSION"
           PANDOC_VERSION=$(cat pandoc-version.txt)
-          echo "Extracted Pandoc version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "pandoc_version=$PANDOC_VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "PANDOC_VERSION=$PANDOC_VERSION" >> $GITHUB_ENV
 
@@ -53,104 +52,83 @@ jobs:
           ref: ${{ env.PANDOC_VERSION }}
           path: pandoc
 
-      - name: Patch Pandoc sources
-        run: |
-          pushd pandoc
-          patch -p1 < ../patch/pandoc.patch
-          popd
+      - name: Patch Pandoc
+        run: patch -p1 < patch/pandoc.patch
 
-      - name: gen-plan-json
+      - name: Build Pandoc WASM
         run: |
-          pushd pandoc
-          wasm32-wasi-cabal build pandoc-cli --dry-run
-          popd
-
-      - name: wasm-cabal-cache
-        uses: actions/cache@v4
-        with:
-          key: wasm-cabal-cache-${{ hashFiles('pandoc/dist-newstyle/cache/plan.json') }}
-          restore-keys: wasm-cabal-cache-
-          path: |
-            ~/.ghc-wasm/.cabal/store
-            pandoc/dist-newstyle
-
-      - name: build
-        run: |
-          pushd pandoc
+          cd pandoc
           wasm32-wasi-cabal build pandoc-cli
-          popd
 
-      - name: dist
+      - name: Optimize WASM
         run: |
-          mkdir dist
-          wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz $(find pandoc -type f -name pandoc.wasm) -o dist/pandoc.wasm
+          mkdir -p dist
+          wasm-opt --low-memory-unused -Oz pandoc/dist-newstyle/**/pandoc.wasm -o dist/pandoc.wasm
           cp src/*.js dist
 
-      - name: test
-        run: |
-          wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
-          head --lines=20 pandoc/README.rst
+      - name: Test build
+        run: wasmtime run --dir .::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
 
-      - name: Prepare pages
-        run: |
-          cp dist/pandoc.wasm demo/
-
-      - name: Upload pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: demo
-          retention-days: 90
-
-      - name: deploy-pages
-        uses: actions/deploy-pages@v4
-
-      - name: Upload as build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: wasm-pandoc-${{ env.VERSION }}
           path: dist
 
-      - name: Zip dist folder
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          pushd dist
-          zip -r ../wasm-pandoc-${{ env.VERSION }}.zip .
-          popd
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Upload to release
-        if: ${{ github.event_name == 'release' }}
-        uses: svenstaro/upload-release-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: wasm-pandoc-${{ env.VERSION }}.zip
-          asset_name: wasm-pandoc-${{ env.VERSION }}.zip
-          tag: ${{ github.ref }}
-          overwrite: true
+          name: wasm-pandoc-${{ needs.build.outputs.version }}
 
-      - name: "Install node"
-        if: ${{ github.event_name == 'release' }}
-        uses: actions/setup-node@v3
+      - name: Prepare demo
+        run: cp pandoc.wasm demo/
+
+      - name: Deploy to Pages
+        uses: actions/deploy-pages@v4
         with:
-          node-version: "22"
+          artifact_name: pages-artifact
+          target_dir: demo
 
-      - name: Add package.json and README.md
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          cp package.json dist/
-          cp README.md dist/
+  release:
+    needs: build
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      # - name: Deploy
-      #   if: ${{ github.event_name == 'release' }}
-      #   uses: s0/git-publish-subdir-action@develop
-      #   env:
-      #     REPO: self
-      #     BRANCH: releases
-      #     FOLDER: dist
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-pandoc-${{ needs.build.outputs.version }}
 
-      - name: Distribute via NPM
-        if: ${{ github.event_name == 'release' }}
+      - name: Add metadata files
+        run: cp {package.json,README.md,LICENSE} dist/
+
+      - name: Create release package
+        run: zip -r wasm-pandoc-${{ needs.build.outputs.version }}.zip dist
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: wasm-pandoc-${{ needs.build.outputs.version }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to NPM
         uses: JS-DevTools/npm-publish@v3
         with:
-          package: "dist"
+          package: dist
           token: ${{ secrets.NPM_TOKEN }}
