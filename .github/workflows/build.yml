@@ -32,8 +32,8 @@ jobs:
       - name: Extract versions
         id: extract-version
         run: |
-          env.VERSION=$(jq -r .version package.json)
-          env.PANDOC_VERSION=$(cat pandoc-version.txt)
+          VERSION=$(jq -r .version package.json)
+          PANDOC_VERSION=$(cat pandoc-version.txt)
           echo "version=${{ env.VERSION }}" >> $GITHUB_OUTPUT
           echo "pandoc_version=${{ env.PANDOC_VERSION }}" >> $GITHUB_OUTPUT
           echo "wasm_cache_key=wasm-${{ env.PANDOC_VERSION }}-${{ hashFiles('patch/pandoc.patch') }}" >> $GITHUB_OUTPUT
