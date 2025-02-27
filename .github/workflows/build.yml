@@ -10,17 +10,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - name: Install pre-commit
-        run: |
-          pip install pre-commit==4.1.0
-
       - name: Run pre-commit
-        run: |
-          pre-commit run --all-files
+        uses: pre-commit/action@v3.0.1
   prepare:
     runs-on: ubuntu-latest
     outputs:
