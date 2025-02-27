@@ -133,10 +133,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Add package.json
+      - name: Add package.json and README.md
         if: ${{ github.event_name == 'release' }}
         run: |
           cp package.json dist/
+          cp README.md dist/
 
       # - name: Deploy
       #   if: ${{ github.event_name == 'release' }}
