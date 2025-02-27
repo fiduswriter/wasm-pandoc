@@ -3,6 +3,8 @@ name: Build, deploy, and release
 on:
   push:
   pull_request:
+  release:
+    types: [published]
 
 jobs:
   pre-commit:
@@ -187,6 +189,7 @@ jobs:
 
   deploy-pages:
     needs: [prepare, post-process]
+    if: ${{ github.event_name != 'release' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -215,7 +218,7 @@ jobs:
 
   release:
     needs: [prepare, post-process]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -238,11 +241,14 @@ jobs:
           zip -r ../wasm-pandoc-${{ needs.prepare.outputs.version }}.zip .
           popd
 
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v2
+      - name: Upload to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          files: wasm-pandoc-${{ needs.prepare.outputs.version }}.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: asm-pandoc-${{ needs.prepare.outputs.version }}.zip
+          asset_name: asm-pandoc-${{ needs.prepare.outputs.version }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
