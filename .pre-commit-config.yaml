@@ -1,0 +1,40 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+        # Check YAML files for syntax errors, particularly useful for GitHub Actions workflows
+        files: \.ya?ml$
+    -   id: trailing-whitespace
+        # Ensure no trailing whitespace
+    -   id: end-of-file-fixer
+        # Ensure files end with a newline
+    -   id: check-added-large-files
+        # Prevent large files from being committed
+        args: ['--maxkb=500']
+    -   id: check-merge-conflict
+        # Check for merge conflict strings
+    -   id: check-json
+        # Validate JSON files
+    -   id: detect-private-key
+        # Prevent accidental commit of private keys
+
+-   repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+    -   id: actionlint
+        # Lint GitHub Actions workflows
+        files: ^\.github/workflows/
+
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+    -   id: shellcheck
+        # Lint shell scripts
+        types: [shell]
+-   repo: https://github.com/biomejs/pre-commit
+    rev: v1.9.4
+    hooks:
+    -   id: biome-check
+            # #entry: biome check --files-ignore-unknown=true --no-errors-on-unmatched --fix --unsafe
+            # additional_dependencies: ["@biomejs/biome@1.9.2"]
