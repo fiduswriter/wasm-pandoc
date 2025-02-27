@@ -28,10 +28,11 @@ jobs:
         run: |
           VERSION=$(jq -r .version package.json)
           PANDOC_VERSION=$(cat pandoc-version.txt)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "pandoc_version=${PANDOC_VERSION}" >> $GITHUB_OUTPUT
-          echo "wasm_cache_key=wasm-${PANDOC_VERSION}-${{ hashFiles('patch/pandoc.patch') }}" >> $GITHUB_OUTPUT
-
+          {
+            echo "version=${VERSION}";
+            echo "pandoc_version=${PANDOC_VERSION}";
+            echo "wasm_cache_key=wasm-${PANDOC_VERSION}-${{ hashFiles('patch/pandoc.patch') }}";
+          }  >> "$GITHUB_OUTPUT"
       # Check if we already have the optimized WASM in cache
       - name: Check WASM cache
         id: cache-wasm
@@ -67,7 +68,7 @@ jobs:
           pushd "$temp_dir"
           cabal update
           cabal install alex happy
-          echo "$HOME/.cabal/bin" >> $GITHUB_PATH
+          echo "$HOME/.cabal/bin" >> "$GITHUB_PATH"
           popd
 
       - name: Setup GHC-WASM
@@ -83,7 +84,7 @@ jobs:
       - name: Add cached tools to PATH
         if: steps.cache-tools.outputs.cache-hit == 'true'
         run: |
-          echo "$HOME/.cabal/bin" >> $GITHUB_PATH
+          echo "$HOME/.cabal/bin" >> "$GITHUB_PATH"
           ~/.ghc-wasm/add_to_github_path.sh
 
       - name: Checkout Pandoc
