@@ -11,7 +11,7 @@ jobs:
       version: ${{ steps.extract-version.outputs.version }}
       pandoc_version: ${{ steps.extract-version.outputs.pandoc_version }}
       wasm_cache_hit: ${{ steps.cache-wasm.outputs.cache-hit }}
-      cache_key: wasm-bundle-${{ steps.extract-version.outputs.pandoc_version }}-${{ hashFiles('patch/pandoc.patch') }}
+      wasm_cache_key: ${{ steps.extract-version.outputs.wasm_cache_key }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,6 +23,7 @@ jobs:
           PANDOC_VERSION=$(cat pandoc-version.txt)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "pandoc_version=$PANDOC_VERSION" >> $GITHUB_OUTPUT
+          echo "wasm_cache_key=wasm-${{ steps.extract-version.outputs.pandoc_version }}-${{ hashFiles('patch/pandoc.patch') }}" >> $GITHUB_OUTPUT
 
       # Check if we already have the optimized WASM in cache
       - name: Check WASM cache
@@ -118,7 +119,7 @@ jobs:
       - name: Optimize WASM
         run: |
           mkdir -p dist
-          WASM_PATH=$(find pandoc/dist-newstyle -name pandoc.wasm -type f)
+          WASM_PATH=$(find pandoc -name pandoc.wasm -type f)
           wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz $WASM_PATH -o dist/pandoc.wasm
           cp src/*.js dist/
 
@@ -158,7 +159,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: dist
-          key: ${{ needs.prepare.outputs.cache_key }}
+          key: ${{ needs.prepare.outputs.wasm_cache_key }}
           fail-on-cache-miss: true
 
       # Combine with JS files - they're not part of the cache key
