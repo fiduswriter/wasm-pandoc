@@ -10,7 +10,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - name: Install pre-commit
         run: |
           pip install pre-commit
@@ -41,9 +44,9 @@ jobs:
       # Check if we already have the optimized WASM in cache
       - name: Check WASM cache
         id: cache-wasm
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: dist
+          path: dist/pandoc.wasm
           key: ${{ steps.extract-version.outputs.wasm_cache_key }}
 
   build-wasm:
