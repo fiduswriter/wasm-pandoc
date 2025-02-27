@@ -53,12 +53,16 @@ jobs:
           path: pandoc
 
       - name: Patch Pandoc
-        run: patch -p1 < patch/pandoc.patch
+        run: |
+          pushd pandoc
+          patch -p1 < ../patch/pandoc.patch
+          popd
 
       - name: Build Pandoc WASM
         run: |
-          cd pandoc
+          pushd pandoc
           wasm32-wasi-cabal build pandoc-cli
+          popd
 
       - name: Optimize WASM
         run: |
