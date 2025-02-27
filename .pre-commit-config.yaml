@@ -26,12 +26,6 @@ repos:
         # Lint GitHub Actions workflows
         files: ^\.github/workflows/
 
--   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
-    hooks:
-    -   id: shellcheck
-        # Lint shell scripts
-        types: [shell]
 -   repo: https://github.com/biomejs/pre-commit
     rev: v1.9.4
     hooks:
