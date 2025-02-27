@@ -128,12 +128,12 @@ jobs:
         run: |
           mkdir -p dist
           WASM_PATH=$(find pandoc -name pandoc.wasm -type f)
-          wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz $WASM_PATH -o dist/pandoc.wasm
+          wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz "$WASM_PATH" -o dist/pandoc.wasm
           cp src/*.js dist/
 
       - name: Test build
         run: |
-          wasmtime run --dir $PWD::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
+          wasmtime run --dir "$PWD"::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
           head -20 pandoc/README.rst
 
       - name: Save to cache
