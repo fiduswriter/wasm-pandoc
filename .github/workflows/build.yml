@@ -175,9 +175,9 @@ jobs:
       # This step only runs if we hit the cache
       - name: Restore from cache
         if: needs.prepare.outputs.wasm_cache_hit == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: dist
+          path: dist/pandoc.wasm
           key: ${{ needs.prepare.outputs.wasm_cache_key }}
           fail-on-cache-miss: true
 
