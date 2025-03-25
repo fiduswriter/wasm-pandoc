@@ -76,7 +76,7 @@ jobs:
         run: |
           temp_dir=$(mktemp -d)
           pushd "$temp_dir"
-          curl -f -L --retry 5 https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/archive/master/ghc-wasm-meta-master.tar.gz | tar xz --strip-components=1
+          curl -f -L --retry 5 https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/archive/92ff0eb8541eb0a6097922e3532c3fd44d2f7db4/ghc-wasm-meta-92ff0eb8541eb0a6097922e3532c3fd44d2f7db4.tar.gz | tar xz --strip-components=1
           FLAVOUR=9.12 ./setup.sh
           ~/.ghc-wasm/add_to_github_path.sh
           popd
