@@ -21,6 +21,6 @@
   "author": "Johannes Wilm",
   "license": "MIT",
   "dependencies": {
-    "@bjorn3/browser_wasi_shim": "^0.4.0"
+    "@bjorn3/browser_wasi_shim": "^0.4.1"
   }
 }
