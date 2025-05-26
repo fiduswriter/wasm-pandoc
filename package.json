@@ -8,7 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com:fiduswriter/wasm-pandoc.git"
+    "url": "git+https://github.com/fiduswriter/wasm-pandoc.git"
+  },
+  "homepage": "https://github.com/fiduswriter/wasm-pandoc",
+  "bugs": {
+    "url": "https://github.com/fiduswriter/wasm-pandoc/issues"
   },
   "keywords": [
     "pandoc",
