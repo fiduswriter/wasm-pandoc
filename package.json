@@ -1,6 +1,6 @@
 {
   "name": "wasm-pandoc",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Pandoc transpiled as WASM to be used in browsers.",
   "main": "index.js",
   "scripts": {
