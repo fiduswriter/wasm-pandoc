@@ -101,8 +101,6 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-      - name: NPM CI
-        run: npm ci
       - name: Install dependencies
         run: npm install
 
