@@ -158,8 +158,6 @@ jobs:
       - name: Publish to NPM
         if: success()
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify NPM publication
         if: success()
