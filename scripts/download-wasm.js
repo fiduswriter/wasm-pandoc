@@ -2,10 +2,12 @@
 
 /**
  * Download official pandoc.wasm binary from GitHub releases
- * This script is run as a postinstall step to fetch the latest pandoc WASM binary
+ * This script is run during package preparation (before publishing) to fetch the pandoc WASM binary
  *
  * Version is read from pandoc-version.txt
  * Only skips download if existing WASM matches the target version
+ *
+ * The downloaded pandoc.wasm is committed to the repository and distributed with the npm package.
  */
 
 import fs from "fs"

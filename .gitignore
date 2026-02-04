@@ -1,13 +1,14 @@
 # Node modules
 node_modules/
 
-# Downloaded WASM files (downloaded during npm install)
+# WASM files (not committed to git, but included in npm package)
 /src/pandoc.wasm
 /src/.pandoc-wasm-version
 /demo/pandoc.wasm
 
 # Build artifacts
 dist/
+*.tgz
 
 # OS files
 .DS_Store

@@ -31,7 +31,7 @@ python3 -m http.server 8000
 npm install wasm-pandoc
 ```
 
-The package will automatically download the official pandoc.wasm binary from GitHub during installation. The Pandoc version is specified in `pandoc-version.txt` (currently 3.9).
+The package includes the official pandoc.wasm binary (currently version 3.9). No additional downloads are required during installation.
 
 ## Usage
 
@@ -288,9 +288,20 @@ This package uses **semantic versioning (semver)** independently from Pandoc's v
 
 ### How Versions are Managed
 
-The Pandoc version is specified in `pandoc-version.txt`. The download script automatically reads this file during installation to determine which version to download from GitHub.
+The Pandoc version is specified in `pandoc-version.txt` and the corresponding `pandoc.wasm` binary is included in the npm package. When preparing a new release, maintainers run `npm run prepare` to download the WASM binary specified in `pandoc-version.txt`.
 
-**Version caching:** The script creates a `.pandoc-wasm-version` cache file in `src/` to track the currently downloaded version. This ensures the download is skipped if you already have the correct version, but will re-download if `pandoc-version.txt` changes.
+**For maintainers:** To update the Pandoc version:
+1. Update the version in `pandoc-version.txt`
+2. Run `npm run prepare` to download the new WASM binary to `src/pandoc.wasm`
+3. Commit `pandoc-version.txt` (but NOT `src/pandoc.wasm` - it stays in `.gitignore`)
+4. Update the package version in `package.json` following semver
+5. Run `npm pack` to create the package (this includes `src/pandoc.wasm` via the `files` field)
+6. Publish the package with `npm publish`
+
+**Note:** The `src/pandoc.wasm` file is:
+- ❌ NOT committed to git (keeps repository small)
+- ✅ Included in the npm package (users get it with `npm install`)
+- Downloaded by maintainers during the build/prepare step
 
 **Note:** Pandoc itself doesn't follow semver, but npm packages must. See [VERSIONING.md](VERSIONING.md) for complete details on our versioning strategy.
 

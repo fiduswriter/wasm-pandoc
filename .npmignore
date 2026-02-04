@@ -1,0 +1,47 @@
+# Development files
+.github/
+demo/
+scripts/
+test/
+examples/
+
+# Documentation (keep README.md, but exclude detailed docs)
+MIGRATION.md
+CHANGES_SUMMARY.md
+SUMMARY.md
+MAINTAINER_README.md
+REMOVED_FILES.md
+CLEANUP_COMPLETE.md
+FINAL_SUMMARY.md
+VERSIONING.md
+
+# Version control
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# WASM version cache (the actual WASM file IS included via package.json files field)
+/src/.pandoc-wasm-version
+
+# Build artifacts that aren't needed
+*.tmp
+.temp/
+
+# Note: src/pandoc.wasm is in .gitignore but IS included in npm package
+# via the "files" field in package.json
