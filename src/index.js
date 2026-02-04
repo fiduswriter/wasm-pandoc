@@ -33,9 +33,6 @@
    Returns: { out, mediaFiles }
 */
 
-import {readFileSync} from "node:fs"
-import {dirname, join} from "node:path"
-import {fileURLToPath} from "node:url"
 import {
     ConsoleStdout,
     File,
@@ -53,7 +50,11 @@ const isNode =
 // Load WASM file based on environment
 let pandocWasm
 if (isNode) {
-    // Node.js: Load WASM file from filesystem
+    // Node.js: Load WASM file from filesystem using dynamic imports
+    // This avoids bundler errors when targeting browsers
+    const {fileURLToPath} = await import("node:url")
+    const {dirname, join} = await import("node:path")
+    const {readFileSync} = await import("node:fs")
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
     const wasmPath = join(__dirname, "pandoc.wasm")
