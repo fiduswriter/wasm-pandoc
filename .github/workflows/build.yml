@@ -121,6 +121,19 @@ jobs:
           VERSION=$(jq -r .version package.json)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+          # Detect if this is a prerelease version (contains -, e.g., 1.0.0-beta.6)
+          if [[ "$VERSION" == *-* ]]; then
+            # Extract the prerelease tag (e.g., "beta" from "1.0.0-beta.6")
+            PRERELEASE_TAG=$(echo "$VERSION" | sed -E 's/.*-([a-zA-Z]+).*/\1/')
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=${PRERELEASE_TAG}" >> "$GITHUB_OUTPUT"
+            echo "Detected prerelease version: $VERSION (tag: ${PRERELEASE_TAG})"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "Detected stable version: $VERSION"
+          fi
+
       - name: Create release package
         run: npm pack
 
@@ -157,10 +170,10 @@ jobs:
 
       - name: Publish to NPM
         if: success()
-        run: npm publish
+        run: npm publish --tag ${{ steps.extract-version.outputs.npm_tag }}
 
       - name: Verify NPM publication
         if: success()
         run: |
-          echo "✓ Package published to npm"
+          echo "✓ Package published to npm with tag: ${{ steps.extract-version.outputs.npm_tag }}"
           echo "Install with: npm install wasm-pandoc@${{ steps.extract-version.outputs.version }}"
