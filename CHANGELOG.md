@@ -15,6 +15,7 @@ This is a complete rewrite of the package to use the **official Pandoc WASM bina
 - Support for warnings output from pandoc
 - Better file handling with explicit files object
 - ES modules support throughout the package
+- **Media extraction**: The `convert()` API now returns extracted media files in a `mediaFiles` object (dictionary), similar to the legacy `pandoc()` API but it uses a plain JavaScript object instead of a Map.
 
 ### Changed
 

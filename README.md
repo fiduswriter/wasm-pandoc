@@ -67,13 +67,14 @@ Convert documents using pandoc.
 **Parameters:**
 - `options` (Object): JavaScript object representing pandoc options. This corresponds to the format used in pandoc's default files. Example: `{ from: "markdown", to: "html", standalone: true }`
 - `stdin` (String|null): Input content as a string, or null if using input files
-- `files` (Object): Object with filenames as keys and File/Blob objects as values. This includes input files, resources (images, bibliographies, etc.), and will be updated with output files.
+- `files` (Object): Object with filenames as keys and String/Blob objects as values. Text files (like bibliographies) can be provided as strings for convenience, while binary files (like images) should be Blobs. This includes input files, resources (images, bibliographies, etc.), and will be updated with output files.
 
 **Returns:** Promise resolving to an object with:
 - `stdout` (String): The main output (if no output file specified)
 - `stderr` (String): Error messages and warnings
 - `warnings` (Array): Array of structured warning objects
-- `files` (Object): Updated files object including any generated output files
+- `files` (Object): Updated files object including input files, output files, and extracted media files
+- `mediaFiles` (Object): Files object containing ONLY extracted media files (images, etc. from documents). Does NOT include input files or the main output file
 
 **Example:**
 
@@ -107,8 +108,15 @@ const options = {
   bibliography: "references.bib"
 };
 
+// Text files can be strings, binary files should be Blobs
+const bibContent = `@article{smith2020,
+  author = {Smith, John},
+  title = {Important Research},
+  year = {2020}
+}`;
+
 const files = {
-  "references.bib": new Blob([bibContent])
+  "references.bib": bibContent  // String is fine for text files!
 };
 
 const markdown = "# My Paper\n\nSome citation [@smith2020].";
@@ -117,6 +125,52 @@ const result = await convert(options, markdown, files);
 
 // Output file is now in result.files["output.docx"]
 const docxBlob = result.files["output.docx"];
+```
+
+**Extracting media files:**
+
+Pandoc can extract embedded media (images, etc.) from documents during conversion. The `convert()` function automatically captures any extracted media files and returns them in the `mediaFiles` object. This contains ONLY the extracted media (like images from a DOCX file), not the main output file or input files.
+
+```js
+import { convert } from "wasm-pandoc";
+
+// Convert DOCX with embedded images to markdown
+const options = {
+  from: "docx",
+  to: "markdown",
+  "extract-media": "media"  // Extract to media/ directory
+};
+
+const files = {
+  "document.docx": docxBlob
+};
+
+const result = await convert(options, null, files);
+
+// Extracted media files (images, etc.) are in result.mediaFiles
+// e.g., result.mediaFiles["media/image1.png"], result.mediaFiles["media/image2.jpg"]
+console.log("Extracted media files:", Object.keys(result.mediaFiles));
+
+// All files (input + output + extracted media) are in result.files
+console.log("All files:", Object.keys(result.files));
+
+// The markdown output references these files
+console.log(result.stdout);  // Contains ![](media/image1.png) etc.
+```
+
+
+#### File Object Structure
+
+The `files` parameter and return value is a plain JavaScript object (dictionary) where:
+- **Keys** are filenames (strings)
+- **Values** are Strings (for text files) or Blob objects (for binary files)
+
+```js
+const files = {
+  "image.png": imageBlob,           // Binary file - use Blob
+  "references.bib": bibTextString,  // Text file - can use string!
+  "style.css": cssTextString        // Text file - can use string!
+};
 ```
 
 #### `query(options)`
@@ -302,7 +356,7 @@ Here are some commonly used options for the `convert()` function:
   csl: "apa.csl",            // Citation style
 
   // Media
-  "extract-media": "media.zip", // Extract media to zip file
+  "extract-media": "media",    // Extract media files (available in result.mediaFiles)
   "embed-resources": true,     // Embed resources in output
 
   // Metadata

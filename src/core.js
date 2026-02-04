@@ -61,9 +61,18 @@ export function createPandocInstance(wasmBinary) {
         instance.exports.hs_init_with_rtsopts(argc_ptr, argv_ptr)
 
         // Helper function to add file to filesystem
-        async function addFile(filename, blob, readonly) {
-            const buffer = await blob.arrayBuffer()
-            const file = new File(new Uint8Array(buffer), {readonly: readonly})
+        // Accepts either a Blob or a string
+        async function addFile(filename, data, readonly) {
+            let uint8Array
+            if (typeof data === "string") {
+                // Convert string to Uint8Array
+                uint8Array = new TextEncoder().encode(data)
+            } else {
+                // Assume it's a Blob
+                const buffer = await data.arrayBuffer()
+                uint8Array = new Uint8Array(buffer)
+            }
+            const file = new File(uint8Array, {readonly: readonly})
             fileSystem.set(filename, file)
         }
 
@@ -114,6 +123,9 @@ export function createPandocInstance(wasmBinary) {
                 )
             )
 
+            // Clone files object to avoid mutating the input parameter
+            files = {...files}
+
             // Setup filesystem
             fileSystem.clear()
             const in_file = new File(new Uint8Array(), {readonly: true})
@@ -125,19 +137,40 @@ export function createPandocInstance(wasmBinary) {
             fileSystem.set("stderr", err_file)
             fileSystem.set("warnings", warnings_file)
 
-            // Add input files
+            // Track known files to detect newly created media files
+            // We track system files, input files, output files, and extract-media archives
+            const knownFiles = new Set([
+                "stdin",
+                "stdout",
+                "stderr",
+                "warnings"
+            ])
+
+            // Add input files (can be Blobs or strings)
             for (const filename in files) {
                 await addFile(filename, files[filename], true)
+                knownFiles.add(filename)
             }
 
+            // Track output file and extract-media separately
+            // These should NOT be included in mediaFiles (only extracted media should be)
+            const outputFileName = options["output-file"] || null
+            const extractMediaPath = options["extract-media"] || null
+
             // Add output file placeholder if specified
-            if (options["output-file"]) {
-                await addFile(options["output-file"], new Blob(), false)
+            if (outputFileName) {
+                await addFile(outputFileName, new Blob(), false)
+                knownFiles.add(outputFileName)
             }
 
             // Add media file placeholder for extracted media
-            if (options["extract-media"]) {
-                await addFile(options["extract-media"], new Blob(), false)
+            if (extractMediaPath) {
+                await addFile(extractMediaPath, new Blob(), false)
+                // Only add to knownFiles if it's a zip file (not a directory)
+                // Directory contents are the actual media files we want in mediaFiles
+                if (extractMediaPath.endsWith(".zip")) {
+                    knownFiles.add(extractMediaPath)
+                }
             }
 
             // Set stdin content
@@ -173,6 +206,25 @@ export function createPandocInstance(wasmBinary) {
                 }
             }
 
+            // Collect any newly created media files (e.g., extracted images)
+            // mediaFiles should ONLY contain extracted media, NOT the output file
+            const mediaFiles = {}
+            for (const [name, fileData] of fileSystem.entries()) {
+                if (
+                    !knownFiles.has(name) &&
+                    fileData &&
+                    fileData.data &&
+                    fileData.data.length > 0
+                ) {
+                    const blob = new Blob([fileData.data])
+                    files[name] = blob
+                    // Only add to mediaFiles if it's not the output file or extract-media archive
+                    if (name !== outputFileName && name !== extractMediaPath) {
+                        mediaFiles[name] = blob
+                    }
+                }
+            }
+
             // Parse warnings
             const rawWarnings = new TextDecoder("utf-8", {fatal: true}).decode(
                 warnings_file.data
@@ -194,7 +246,8 @@ export function createPandocInstance(wasmBinary) {
                     err_file.data
                 ),
                 warnings: warnings,
-                files: files
+                files: files,
+                mediaFiles: mediaFiles
             }
         }
 
@@ -258,10 +311,16 @@ export function createPandocInstance(wasmBinary) {
                 i++
             }
 
-            // Add resource files
+            // Add resource files (convert to string or keep as Blob)
             for (const resource of resources) {
-                const contents = await toUint8Array(resource.contents)
-                files[resource.filename] = new Blob([contents])
+                // If contents is a string, keep it as string
+                // Otherwise, convert to Blob
+                if (typeof resource.contents === "string") {
+                    files[resource.filename] = resource.contents
+                } else {
+                    const contents = await toUint8Array(resource.contents)
+                    files[resource.filename] = new Blob([contents])
+                }
             }
 
             // Convert stdin to string
@@ -278,31 +337,13 @@ export function createPandocInstance(wasmBinary) {
             // Call convert
             const result = await convert(options, stdin, files)
 
-            // Find any generated media files
-            const knownFileNames = new Set(
-                Object.keys(
-                    resources.reduce((acc, r) => {
-                        acc[r.filename] = true
-                        return acc
-                    }, {})
-                )
-            )
-
-            if (options["output-file"]) {
-                knownFileNames.add(options["output-file"])
-            }
-
+            // Convert mediaFiles from Object to Map for legacy API compatibility
             const mediaFiles = new Map()
-            for (const [name, _value] of fileSystem.entries()) {
-                if (
-                    !["stdin", "stdout", "stderr", "warnings"].includes(name) &&
-                    !knownFileNames.has(name)
-                ) {
-                    const fileData = fileSystem.get(name)
-                    if (fileData && fileData.data) {
-                        mediaFiles.set(name, convertData(fileData.data))
-                    }
-                }
+            for (const [name, blob] of Object.entries(result.mediaFiles)) {
+                mediaFiles.set(
+                    name,
+                    convertData(new Uint8Array(await blob.arrayBuffer()))
+                )
             }
 
             // Return in legacy format
