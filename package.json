@@ -1,12 +1,23 @@
 {
   "name": "wasm-pandoc",
-  "version": "1.0.0-beta.8",
+  "version": "1.0.0-beta.9",
   "description": "Pandoc WASM binary wrapper for use in browsers and Node.js.",
   "type": "module",
   "main": "index.js",
+  "browser": "./src/index.browser.js",
+  "exports": {
+    ".": {
+      "node": "./src/index.node.js",
+      "browser": "./src/index.browser.js",
+      "default": "./index.js"
+    }
+  },
   "files": [
     "index.js",
-    "src/*.js",
+    "src/index.js",
+    "src/index.node.js",
+    "src/index.browser.js",
+    "src/core.js",
     "src/pandoc.wasm",
     "pandoc-version.txt",
     "README.md",

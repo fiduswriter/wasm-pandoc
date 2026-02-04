@@ -234,6 +234,8 @@ const result = await convert(
 
 In browsers, the package uses dynamic imports and fetch to load the WASM binary. When using a bundler, you need to configure it to handle `.wasm` files as assets/resources.
 
+**Note:** The package provides separate entry points for Node.js (`src/index.node.js`) and browsers (`src/index.browser.js`). Bundlers should automatically use the correct entry point based on the `browser` field in `package.json`. This ensures that Node.js-specific modules (`fs`, `path`, `url`) are never included in browser bundles, avoiding any bundler errors.
+
 ## Bundler Configuration
 
 When using a bundler for browser deployment, configure it to handle `.wasm` files as assets/resources.
