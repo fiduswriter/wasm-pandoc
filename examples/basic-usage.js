@@ -1,6 +1,6 @@
 // Basic usage examples for wasm-pandoc
 
-import {convert, pandoc, query} from "wasm-pandoc"
+import {convert, pandoc, query} from "../index.js"
 
 // Example 1: Simple markdown to HTML conversion
 async function example1() {

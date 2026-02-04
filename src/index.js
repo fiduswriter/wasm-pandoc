@@ -33,6 +33,9 @@
    Returns: { out, mediaFiles }
 */
 
+import {readFileSync} from "node:fs"
+import {dirname, join} from "node:path"
+import {fileURLToPath} from "node:url"
 import {
     ConsoleStdout,
     File,
@@ -40,7 +43,28 @@ import {
     PreopenDirectory,
     WASI
 } from "@bjorn3/browser_wasi_shim"
-import pandocWasmLocation from "./pandoc.wasm"
+
+// Detect environment
+const isNode =
+    typeof process !== "undefined" &&
+    process.versions != null &&
+    process.versions.node != null
+
+// Load WASM file based on environment
+let pandocWasm
+if (isNode) {
+    // Node.js: Load WASM file from filesystem
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    const wasmPath = join(__dirname, "pandoc.wasm")
+    pandocWasm = readFileSync(wasmPath)
+} else {
+    // Browser: Use dynamic import (requires bundler support)
+    const pandocWasmModule = await import("./pandoc.wasm")
+    const pandocWasmLocation = pandocWasmModule.default
+    const pandocWasmFetch = await fetch(pandocWasmLocation)
+    pandocWasm = await pandocWasmFetch.arrayBuffer()
+}
 
 // Initialize WASM module
 const args = ["pandoc.wasm", "+RTS", "-H64m", "-RTS"]
@@ -55,8 +79,6 @@ const fds = [
 const options = {debug: false}
 const wasi = new WASI(args, env, fds, options)
 
-const pandocWasmFetch = await fetch(pandocWasmLocation)
-const pandocWasm = await pandocWasmFetch.arrayBuffer()
 const {instance} = await WebAssembly.instantiate(pandocWasm, {
     wasi_snapshot_preview1: wasi.wasiImport
 })

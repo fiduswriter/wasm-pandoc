@@ -33,6 +33,27 @@ npm install wasm-pandoc
 
 The package includes the official pandoc.wasm binary (currently version 3.9). No additional downloads are required during installation.
 
+## Testing
+
+The package includes tests that run in both Node.js and browser environments:
+
+```bash
+# Run tests in Node.js
+npm test
+
+# Run examples
+node examples/basic-usage.js
+```
+
+For browser testing, use the demo:
+
+```bash
+npm run setup-demo
+cd demo
+python3 -m http.server 8000
+# Open http://localhost:8000 in your browser
+```
+
 ## Usage
 
 ### Modern API (Recommended)
@@ -186,9 +207,36 @@ console.log(output.out); // HTML output
 console.log(output.mediaFiles); // Map of extracted media files
 ```
 
+## Environment Support
+
+This package works in both **Node.js** and **browser** environments.
+
+### Node.js
+
+The package automatically detects when running in Node.js and loads the WASM file from the filesystem. No special configuration is needed:
+
+```js
+import { convert, query } from "wasm-pandoc";
+
+// Works directly in Node.js
+const result = await convert(
+  { from: "markdown", to: "html" },
+  "# Hello",
+  {}
+);
+```
+
+**Requirements:**
+- Node.js 18+ (for native `fetch` and WASM support)
+- ES modules (`"type": "module"` in package.json or `.mjs` extension)
+
+### Browsers
+
+In browsers, the package uses dynamic imports and fetch to load the WASM binary. When using a bundler, you need to configure it to handle `.wasm` files as assets/resources.
+
 ## Bundler Configuration
 
-When using a bundler, you need to configure it to handle `.wasm` files as assets/resources.
+When using a bundler for browser deployment, configure it to handle `.wasm` files as assets/resources.
 
 ### Webpack/Rspack
 
@@ -273,7 +321,7 @@ The WASM version of pandoc has some limitations compared to the native version:
 
 1. **No HTTP requests**: Cannot fetch resources from URLs (operates in WASM sandbox)
 2. **No system commands**: Cannot run external programs (filters must be Lua, not executable)
-3. **No native PDF**: Cannot produce PDF via LaTeX/ConTeXt (but PDF via Typst works with additional setup)
+3. **No PDF output**: Cannot produce PDF directly, as this requires external programs like LaTeX, ConTeXt, or Typst which cannot be executed in the WASM sandbox. However, you can convert to intermediate formats like LaTeX or Typst and then use external tools to generate PDFs
 4. **File access**: All files must be explicitly provided in the `files` object
 
 ## Versioning
@@ -303,7 +351,7 @@ The Pandoc version is specified in `pandoc-version.txt` and the corresponding `p
 - ✅ Included in the npm package (users get it with `npm install`)
 - Downloaded by maintainers during the build/prepare step
 
-**Note:** Pandoc itself doesn't follow semver, but npm packages must. See [VERSIONING.md](VERSIONING.md) for complete details on our versioning strategy.
+**Note:** Pandoc itself doesn't follow semver, but npm packages must.
 
 ## Acknowledgements
 

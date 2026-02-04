@@ -1,5 +1,6 @@
 # Node modules
 node_modules/
+package-lock.json
 
 # WASM files (not committed to git, but included in npm package)
 /src/pandoc.wasm

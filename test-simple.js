@@ -3,18 +3,7 @@
 /**
  * Simple test script for wasm-pandoc
  *
- * NOTE: This package is designed for browser environments.
- * This test script will fail in Node.js because the WASM module
- * requires browser APIs and the browser_wasi_shim.
- *
- * For testing, use the browser demo instead:
- *   npm run setup-demo
- *   cd demo
- *   python3 -m http.server 8000
- *   # Open http://localhost:8000 in browser
- *
- * This test file is kept for reference/CI purposes but requires
- * additional Node.js WASI setup to work.
+ * This package works in both Node.js and browser environments.
  */
 
 import {convert, query} from "./index.js"
@@ -92,20 +81,8 @@ This is a **test** of the wasm-pandoc package.
     } catch (error) {
         console.error("\n✗ Test failed with error:")
         console.error(error)
-        console.error(
-            "\nNote: This package is designed for browser environments."
-        )
-        console.error(
-            "For testing, use the browser demo instead (see npm run setup-demo)."
-        )
         process.exit(1)
     }
 }
-
-// Only run tests if WASM is available (will fail in Node.js without proper setup)
-console.log("Note: This package is designed for browser environments.")
-console.log(
-    "This test may fail in Node.js. Use the browser demo for testing.\n"
-)
 
 runTests()

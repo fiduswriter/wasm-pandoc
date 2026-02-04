@@ -16,7 +16,7 @@
   "scripts": {
     "prepare": "node scripts/download-wasm.js",
     "setup-demo": "node scripts/setup-demo.js",
-    "test": "echo \"This package is designed for browser environments. Run 'npm run setup-demo' and test in browser.\" && exit 0"
+    "test": "node test-simple.js"
   },
   "repository": {
     "type": "git",
