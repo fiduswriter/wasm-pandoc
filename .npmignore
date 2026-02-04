@@ -42,6 +42,7 @@ yarn-error.log*
 # Build artifacts that aren't needed
 *.tmp
 .temp/
+*.tgz
 
 # Note: src/pandoc.wasm is in .gitignore but IS included in npm package
 # via the "files" field in package.json

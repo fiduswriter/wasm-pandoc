@@ -122,9 +122,7 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create release package
-        run: |
-          npm pack
-          mv wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz ./
+        run: npm pack
 
       - name: Verify package contents
         run: |
