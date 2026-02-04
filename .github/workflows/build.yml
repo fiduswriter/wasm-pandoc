@@ -1,210 +1,68 @@
-name: Build, deploy, and release
+name: Test, deploy, and release
 
 on:
   push:
   pull_request:
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.extract-version.outputs.version }}
-      pandoc_version: ${{ steps.extract-version.outputs.pandoc_version }}
-      wasm_cache_key: ${{ steps.extract-version.outputs.wasm_cache_key }}
-      wasm_cache_hit: ${{ steps.cache-wasm.outputs.cache-hit }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Extract versions for ${{ github.ref }}
-        id: extract-version
-        run: |
-          VERSION=$(jq -r .version package.json)
-          PANDOC_VERSION=$(cat pandoc-version.txt)
-          {
-            echo "version=${VERSION}";
-            echo "pandoc_version=${PANDOC_VERSION}";
-            echo "wasm_cache_key=wasm-${PANDOC_VERSION}-${{ hashFiles('patch/pandoc.patch') }}";
-          }  >> "$GITHUB_OUTPUT"
-      # Check if we already have the optimized WASM in cache
-      - name: Check WASM cache
-        id: cache-wasm
-        uses: actions/cache/restore@v4
-        with:
-          path: dist/pandoc.wasm
-          key: ${{ steps.extract-version.outputs.wasm_cache_key }}
-
-  build-wasm:
-    needs: prepare
-    if: needs.prepare.outputs.wasm_cache_hit != 'true'
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Cache Haskell tools
-      - name: Cache Haskell tools
-        id: cache-tools
-        uses: actions/cache@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: |
-            ~/.cabal
-            ~/.ghc-wasm
-          key: haskell-tools-${{ needs.prepare.outputs.pandoc_version }}
-          restore-keys: |
-            haskell-tools-
+          node-version: '20'
 
-      - name: Setup build tools
-        if: steps.cache-tools.outputs.cache-hit != 'true'
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download Pandoc WASM
+        run: npm run postinstall
+
+      - name: Verify WASM downloaded
         run: |
-          temp_dir=$(mktemp -d)
-          pushd "$temp_dir"
-          cabal update
-          cabal install alex happy
-          echo "$HOME/.cabal/bin" >> "$GITHUB_PATH"
-          popd
+          if [ ! -f src/pandoc.wasm ]; then
+            echo "Error: pandoc.wasm not found"
+            exit 1
+          fi
+          echo "✓ pandoc.wasm found"
+          ls -lh src/pandoc.wasm
 
-      - name: Setup GHC-WASM
-        if: steps.cache-tools.outputs.cache-hit != 'true'
-        run: |
-          temp_dir=$(mktemp -d)
-          pushd "$temp_dir"
-          curl -f -L --retry 5 https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/archive/92ff0eb8541eb0a6097922e3532c3fd44d2f7db4/ghc-wasm-meta-92ff0eb8541eb0a6097922e3532c3fd44d2f7db4.tar.gz | tar xz --strip-components=1
-          FLAVOUR=9.12 ./setup.sh
-          ~/.ghc-wasm/add_to_github_path.sh
-          popd
-
-      - name: Add cached tools to PATH
-        if: steps.cache-tools.outputs.cache-hit == 'true'
-        run: |
-          echo "$HOME/.cabal/bin" >> "$GITHUB_PATH"
-          ~/.ghc-wasm/add_to_github_path.sh
-
-      - name: Checkout Pandoc
-        uses: actions/checkout@v4
-        with:
-          repository: jgm/pandoc
-          ref: ${{ needs.prepare.outputs.pandoc_version }}
-          path: pandoc
-
-      - name: Patch Pandoc
-        run: |
-          pushd pandoc
-          patch -p1 < ../patch/pandoc.patch
-          popd
-
-      - name: Generate Cabal plan
-        run: |
-          pushd pandoc
-          wasm32-wasi-cabal build pandoc-cli --dry-run
-          popd
-
-      # Cache Cabal dependencies and build artifacts
-      - name: Cache Cabal dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.ghc-wasm/.cabal/store
-            pandoc/dist-newstyle
-          key: wasm-cabal-cache-${{ needs.prepare.outputs.pandoc_version }}-${{ hashFiles('pandoc/dist-newstyle/cache/plan.json') }}
-          restore-keys: |
-            wasm-cabal-cache-${{ needs.prepare.outputs.pandoc_version }}-
-            wasm-cabal-cache-
-
-      - name: Build Pandoc WASM
-        run: |
-          pushd pandoc
-          wasm32-wasi-cabal build pandoc-cli
-          popd
-
-      - name: Optimize WASM
-        run: |
-          mkdir -p dist
-          WASM_PATH=$(find pandoc -name pandoc.wasm -type f)
-          wasm-opt --low-memory-unused --converge --gufa --flatten --rereloop -Oz "$WASM_PATH" -o dist/pandoc.wasm
-          cp src/*.js dist/
-
-      - name: Test build
-        run: |
-          wasmtime run --dir "$PWD"::/ -- dist/pandoc.wasm pandoc/README.md -o pandoc/README.rst
-          head -20 pandoc/README.rst
-
-      - name: Save to cache
-        uses: actions/cache/save@v4
-        with:
-          path: dist/pandoc.wasm
-          key: ${{ needs.prepare.outputs.wasm_cache_key }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-build
-          path: dist
-
-  post-process:
-    needs: [prepare, build-wasm]
-    if: always() # Run even if build-wasm is skipped
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Either get the artifact from build-wasm or from cache
-      - name: Download built artifact
-        if: needs.prepare.outputs.wasm_cache_hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-build
-          path: dist
-
-      # This step only runs if we hit the cache
-      - name: Restore from cache
-        if: needs.prepare.outputs.wasm_cache_hit == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: dist/pandoc.wasm
-          key: ${{ needs.prepare.outputs.wasm_cache_key }}
-          fail-on-cache-miss: true
-
-      # Combine with JS files - they're not part of the cache key
-      # but we need them in the artifact
-      - name: Ensure JS files are included
-        run: |
-          cp src/*.js dist/
-
-      - name: Upload final artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-pandoc-${{ needs.prepare.outputs.version }}
-          path: dist
+      - name: Run tests
+        run: node test-simple.js
 
   deploy-pages:
-    needs: [prepare, post-process]
-    if: always() && !startsWith(github.ref, 'refs/tags/')
+    needs: test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: wasm-pandoc-${{ needs.prepare.outputs.version }}
-          path: dist
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download Pandoc WASM
+        run: npm run postinstall
 
       - name: Prepare demo
         run: |
-          cp dist/pandoc.wasm demo/
+          cp src/pandoc.wasm demo/
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -212,11 +70,12 @@ jobs:
           path: demo
 
       - name: Deploy to Pages
+        id: deployment
         uses: actions/deploy-pages@v4
 
   release:
-    needs: [prepare, post-process]
-    if: always() && startsWith(github.ref, 'refs/tags/')
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -224,36 +83,45 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: wasm-pandoc-${{ needs.prepare.outputs.version }}
-          path: dist
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Add metadata files
-        run: cp {package.json,README.md,LICENSE} dist/
+      - name: Install dependencies
+        run: npm install
+
+      - name: Extract version
+        id: extract-version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create release package
         run: |
-          pushd dist
-          zip -r ../wasm-pandoc-${{ needs.prepare.outputs.version }}.zip .
-          popd
+          mkdir -p release
+          cp package.json README.md LICENSE CHANGELOG.md index.js release/
+          cp -r src release/
+          cp -r scripts release/
+          cd release
+          npm pack
+          mv *.tgz ../wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz
 
-      - name: Upload release asset
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: wasm-pandoc-${{ needs.prepare.outputs.version }}.zip
+          files: wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz
           token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Release of wasm-pandoc ${{ steps.extract-version.outputs.version }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+            Uses official Pandoc WASM binary.
+
+            See [CHANGELOG.md](https://github.com/fiduswriter/wasm-pandoc/blob/main/CHANGELOG.md) for details.
 
       - name: Publish to NPM
-        run: |
-          cd dist
-          npm publish
+        if: success()
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

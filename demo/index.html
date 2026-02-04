@@ -80,7 +80,7 @@
         const inputText = document.getElementById("input").value;
         const argumentsText = document.getElementById("arguments").value;
         try {
-          const output = pandoc(argumentsText, inputText);
+          const output = await pandoc(argumentsText, inputText);
           document.getElementById("output").value = output;
         } catch (err) {
           document.getElementById("output").value = `Error: ${err.message}`;

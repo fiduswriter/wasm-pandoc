@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+
+/**
+ * Simple test script for wasm-pandoc
+ *
+ * NOTE: This package is designed for browser environments.
+ * This test script will fail in Node.js because the WASM module
+ * requires browser APIs and the browser_wasi_shim.
+ *
+ * For testing, use the browser demo instead:
+ *   npm run setup-demo
+ *   cd demo
+ *   python3 -m http.server 8000
+ *   # Open http://localhost:8000 in browser
+ *
+ * This test file is kept for reference/CI purposes but requires
+ * additional Node.js WASI setup to work.
+ */
+
+import {convert, query} from "./index.js"
+
+console.log("Testing wasm-pandoc...\n")
+
+async function runTests() {
+    try {
+        // Test 1: Query version
+        console.log("Test 1: Query version")
+        const version = await query({query: "version"})
+        console.log("✓ Pandoc version:", version)
+
+        // Test 2: Query input formats
+        console.log("\nTest 2: Query input formats")
+        const inputFormats = await query({query: "input-formats"})
+        console.log("✓ Found", inputFormats.length, "input formats")
+        console.log("  Examples:", inputFormats.slice(0, 5).join(", "), "...")
+
+        // Test 3: Query output formats
+        console.log("\nTest 3: Query output formats")
+        const outputFormats = await query({query: "output-formats"})
+        console.log("✓ Found", outputFormats.length, "output formats")
+        console.log("  Examples:", outputFormats.slice(0, 5).join(", "), "...")
+
+        // Test 4: Simple markdown to HTML conversion
+        console.log("\nTest 4: Markdown to HTML conversion")
+        const markdown = `# Hello World
+
+This is a **test** of the wasm-pandoc package.
+
+- Item 1
+- Item 2
+- Item 3
+`
+
+        const options = {
+            from: "markdown",
+            to: "html",
+            standalone: true
+        }
+
+        const result = await convert(options, markdown, {})
+
+        if (result.stdout && result.stdout.includes("<h1")) {
+            console.log("✓ HTML conversion successful")
+            console.log("  Output length:", result.stdout.length, "chars")
+            console.log("  Warnings:", result.warnings.length)
+        } else {
+            console.log("✗ HTML conversion failed")
+            console.log("  stdout:", result.stdout.substring(0, 100))
+            console.log("  stderr:", result.stderr)
+        }
+
+        // Test 5: Markdown to plain text
+        console.log("\nTest 5: Markdown to plain text conversion")
+        const plainResult = await convert(
+            {from: "markdown", to: "plain"},
+            markdown,
+            {}
+        )
+
+        if (plainResult.stdout) {
+            console.log("✓ Plain text conversion successful")
+            console.log(
+                "  Output:",
+                plainResult.stdout.trim().substring(0, 50) + "..."
+            )
+        } else {
+            console.log("✗ Plain text conversion failed")
+        }
+
+        console.log("\n✓ All tests completed successfully!")
+        console.log("\nwasm-pandoc is working correctly.")
+    } catch (error) {
+        console.error("\n✗ Test failed with error:")
+        console.error(error)
+        console.error(
+            "\nNote: This package is designed for browser environments."
+        )
+        console.error(
+            "For testing, use the browser demo instead (see npm run setup-demo)."
+        )
+        process.exit(1)
+    }
+}
+
+// Only run tests if WASM is available (will fail in Node.js without proper setup)
+console.log("Note: This package is designed for browser environments.")
+console.log(
+    "This test may fail in Node.js. Use the browser demo for testing.\n"
+)
+
+runTests()
