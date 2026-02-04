@@ -1,3 +1,13 @@
+# GitHub Actions Workflow for wasm-pandoc
+#
+# This workflow:
+# 1. Tests the package on every push/PR
+# 2. Deploys demo to GitHub Pages on main branch
+# 3. Creates GitHub releases and publishes to npm on tags
+#
+# Note: The pandoc.wasm binary is downloaded during the 'prepare' step
+# and included in the npm package. It is NOT committed to git.
+
 name: Test, deploy, and release
 
 on:
@@ -20,7 +30,7 @@ jobs:
         run: npm install
 
       - name: Download Pandoc WASM
-        run: npm run postinstall
+        run: npm run prepare
 
       - name: Verify WASM downloaded
         run: |
@@ -28,7 +38,7 @@ jobs:
             echo "Error: pandoc.wasm not found"
             exit 1
           fi
-          echo "✓ pandoc.wasm found"
+          echo "✓ pandoc.wasm found ($(du -h src/pandoc.wasm | cut -f1))"
           ls -lh src/pandoc.wasm
 
       - name: Run tests
@@ -58,11 +68,10 @@ jobs:
         run: npm install
 
       - name: Download Pandoc WASM
-        run: npm run postinstall
+        run: npm run prepare
 
       - name: Prepare demo
-        run: |
-          cp src/pandoc.wasm demo/
+        run: npm run setup-demo
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -79,6 +88,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Required secrets:
+    # - GITHUB_TOKEN: Automatically provided by GitHub Actions
+    # - NPM_TOKEN: Must be configured in repository settings for npm publishing
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -92,6 +104,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Download Pandoc WASM
+        run: npm run prepare
+
+      - name: Verify WASM for packaging
+        run: |
+          if [ ! -f src/pandoc.wasm ]; then
+            echo "Error: pandoc.wasm not found - cannot create release package"
+            exit 1
+          fi
+          echo "✓ pandoc.wasm ready for packaging ($(du -h src/pandoc.wasm | cut -f1))"
+
       - name: Extract version
         id: extract-version
         run: |
@@ -100,13 +123,17 @@ jobs:
 
       - name: Create release package
         run: |
-          mkdir -p release
-          cp package.json README.md LICENSE CHANGELOG.md index.js release/
-          cp -r src release/
-          cp -r scripts release/
-          cd release
           npm pack
-          mv *.tgz ../wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz
+          mv wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz ./
+
+      - name: Verify package contents
+        run: |
+          echo "Package contents:"
+          tar -tzf wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz | sort
+          echo ""
+          echo "Verifying pandoc.wasm is in package:"
+          tar -tzf wasm-pandoc-${{ steps.extract-version.outputs.version }}.tgz | grep pandoc.wasm || (echo "ERROR: pandoc.wasm not found in package!" && exit 1)
+          echo "✓ pandoc.wasm is included in package"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -116,12 +143,28 @@ jobs:
           body: |
             Release of wasm-pandoc ${{ steps.extract-version.outputs.version }}
 
-            Uses official Pandoc WASM binary.
+            **What's included:**
+            - Official Pandoc WASM binary (distributed with package)
+            - Modern `convert()` and `query()` API
+            - Backward-compatible `pandoc()` API
+            - Package size: ~16MB (compressed)
+            - No downloads required during installation
 
-            See [CHANGELOG.md](https://github.com/fiduswriter/wasm-pandoc/blob/main/CHANGELOG.md) for details.
+            **Installation:**
+            ```bash
+            npm install wasm-pandoc@${{ steps.extract-version.outputs.version }}
+            ```
+
+            See [CHANGELOG.md](https://github.com/fiduswriter/wasm-pandoc/blob/main/CHANGELOG.md) for complete details.
 
       - name: Publish to NPM
         if: success()
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify NPM publication
+        if: success()
+        run: |
+          echo "✓ Package published to npm"
+          echo "Install with: npm install wasm-pandoc@${{ steps.extract-version.outputs.version }}"
