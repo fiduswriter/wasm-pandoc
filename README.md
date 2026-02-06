@@ -1,5 +1,10 @@
 # `wasm-pandoc`
 
+**DEPRECATED:** The development of this package continues as [pandoc-wasm](https://github.com/pandoc/pandoc-wasm) starting from version 1.0.1. 
+
+
+------------------------------------------------------------
+
 Pandoc WASM binary wrapper for use in browsers and Node.js.
 
 This package uses the official pandoc WASM binary distributed by the Pandoc project.
