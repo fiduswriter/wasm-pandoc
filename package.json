@@ -42,7 +42,7 @@
     "wasm"
   ],
   "author": "Johannes Wilm",
-  "license": "MIT",
+  "license": "GPL-2.0-or-later",
   "dependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2"
   }

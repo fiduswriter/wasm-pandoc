@@ -422,6 +422,8 @@ The Pandoc version is specified in `pandoc-version.txt` and the corresponding `p
 
 ## License
 
-MIT License - see LICENSE file for details.
+The JavaScript code in this repository is licensed under the MIT License (see LICENSE file for details).
 
-Pandoc itself is licensed under the GPL.
+Pandoc itself is licensed under the GPL-v2-or-later.
+
+Note that the final package on npm is licensed under the GPL-v2-or-later as well as this is a requirement as it contains the Pandoc WASM binary.
